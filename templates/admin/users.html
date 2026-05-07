@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}Manajemen Siswa - Absensi Siswa{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-school"></i>
+            <h2>Admin Panel</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin.dashboard') }}"><i class="fas fa-chart-line"></i> Dashboard</a>
+            <a href="{{ url_for('admin.users') }}" class="active"><i class="fas fa-users"></i> Data Siswa</a>
+            <a href="{{ url_for('admin.export_excel') }}"><i class="fas fa-file-excel"></i> Export Laporan</a>
+            <a href="{{ url_for('auth.logout') }}" class="logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="topbar">
+            <h1>Manajemen Data Siswa</h1>
+            <div class="user-profile">
+                <span>{{ current_user.name }}</span>
+                <div class="avatar">{{ current_user.name[0] }}</div>
+            </div>
+        </header>
+
+        <div class="dashboard-content" style="grid-template-columns: 1fr;">
+            
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                <!-- Form Import Excel -->
+                <div class="card" style="flex: 1; min-width: 300px;">
+                    <div class="card-header">
+                        <h2><i class="fas fa-file-import"></i> Import Data Excel</h2>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('admin.import_users_excel') }}" method="POST" enctype="multipart/form-data" style="display: flex; gap: 1rem; align-items: center;">
+                            <input type="file" name="file" accept=".xlsx" required style="flex: 1;">
+                            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-upload"></i> Import</button>
+                        </form>
+                        <p class="text-muted mt-3" style="font-size: 0.8rem;">*Format baris 1: Nama, Email, Password (Mulai data di baris 2).</p>
+                    </div>
+                </div>
+
+                <div class="card" style="flex: 1; min-width: 300px;">
+                    <div class="card-header">
+                        <h2><i class="fas fa-file-export"></i> Export Data Siswa</h2>
+                    </div>
+                    <div class="card-body" style="display: flex; align-items: center;">
+                        <a href="{{ url_for('admin.export_users_excel') }}" class="btn btn-success"><i class="fas fa-file-excel mr-2"></i> Download Data Siswa (.xlsx)</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Tambah Guru -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2><i class="fas fa-user-plus"></i> Tambah Siswa Baru</h2>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.add_user') }}" method="POST" class="add-user-form">
+                        <div class="form-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="name">Nama Lengkap</label>
+                                <div class="input-icon">
+                                    <i class="fas fa-user"></i>
+                                    <input type="text" id="name" name="name" required placeholder="Nama Siswa">
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="email">Email</label>
+                                <div class="input-icon">
+                                    <i class="fas fa-envelope"></i>
+                                    <input type="email" id="email" name="email" required placeholder="email@sekolah.com">
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="password">Password</label>
+                                <div class="input-icon">
+                                    <i class="fas fa-lock"></i>
+                                    <input type="password" id="password" name="password" required placeholder="Password">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-plus ml-2"></i> Tambah Siswa</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Daftar Siswa -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-list"></i> Daftar Siswa Terdaftar</h2>
+                    <span class="badge" style="background:var(--primary-light);color:white">{{ users|length }} Total</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nama Siswa</th>
+                                    <th>Email</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.id }}</td>
+                                    <td><strong>{{ user.name }}</strong></td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary btn-edit-user" data-id="{{ user.id }}" data-name="{{ user.name }}" data-email="{{ user.email }}" style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-reset-user" data-id="{{ user.id }}" data-name="{{ user.name }}" style="padding: 0.25rem 0.5rem; background: var(--warning); color: white; border: none; border-radius: 4px; font-size: 0.8rem; margin: 0 0.5rem;">
+                                            <i class="fas fa-key"></i> Reset Password
+                                        </button>
+                                        <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Apakah Anda yakin ingin menghapus siswa ini? Semua data absensi terkait akan ikut terhapus.');">
+                                            <button type="submit" class="btn btn-sm btn-danger" style="padding: 0.25rem 0.5rem; background: var(--danger); color: white; border: none; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">
+                                                <i class="fas fa-trash"></i> Hapus
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Belum ada data siswa.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="card" style="width: 100%; max-width: 400px; margin: 2rem;">
+        <div class="card-header">
+            <h2>Edit Data Siswa</h2>
+            <button onclick="closeModals()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <div class="card-body">
+            <form id="editForm" method="POST" action="">
+                <div class="form-group">
+                    <label>Nama Lengkap</label>
+                    <input type="text" id="edit-name" name="name" required class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 4px;">
+                </div>
+                <div class="form-group mt-3">
+                    <label>Email</label>
+                    <input type="email" id="edit-email" name="email" required class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 4px;">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block mt-4">Simpan Perubahan</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div id="resetModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="card" style="width: 100%; max-width: 400px; margin: 2rem;">
+        <div class="card-header">
+            <h2>Reset Password</h2>
+            <button onclick="closeModals()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <div class="card-body">
+            <p id="reset-target-name" class="mb-3 font-weight-bold"></p>
+            <form id="resetForm" method="POST" action="">
+                <div class="form-group">
+                    <label>Password Baru</label>
+                    <input type="password" name="new_password" required class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 4px;">
+                </div>
+                <div class="alert alert-warning mt-3" style="font-size: 0.85rem; padding: 0.75rem; background: #fff3cd; color: #856404; border-radius: 4px;">
+                    <i class="fas fa-info-circle"></i> Catatan: Password tersimpan dalam format terenkripsi. Admin tidak dapat melihat password lama, jadi gunakan fitur ini jika siswa lupa password.
+                </div>
+                <button type="submit" class="btn btn-primary btn-block mt-4" style="background: var(--warning); color: white;">Reset Password</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function closeModals() {
+        document.getElementById('editModal').style.display = 'none';
+        document.getElementById('resetModal').style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.btn-edit-user').forEach(button => {
+            button.addEventListener('click', function() {
+                document.getElementById('edit-name').value = this.dataset.name;
+                document.getElementById('edit-email').value = this.dataset.email;
+                document.getElementById('editForm').action = '/admin/users/edit/' + this.dataset.id;
+                document.getElementById('editModal').style.display = 'flex';
+            });
+        });
+
+        document.querySelectorAll('.btn-reset-user').forEach(button => {
+            button.addEventListener('click', function() {
+                document.getElementById('reset-target-name').innerText = 'Reset password untuk: ' + this.dataset.name;
+                document.getElementById('resetForm').action = '/admin/users/reset_pwd/' + this.dataset.id;
+                document.getElementById('resetModal').style.display = 'flex';
+            });
+        });
+    });
+</script>
+{% endblock %}

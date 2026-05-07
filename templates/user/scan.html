@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Scan QR - Absensi Siswa{% endblock %}
+
+{% block head %}
+<!-- Include html5-qrcode library -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+{% endblock %}
+
+{% block content %}
+<div class="user-layout">
+    <nav class="user-navbar">
+        <div class="brand">
+            <i class="fas fa-school"></i>
+            <span>Sistem Absensi</span>
+        </div>
+        <div class="user-info">
+            <a href="{{ url_for('auth.login') }}" class="btn-logout" title="Admin Login"><i class="fas fa-user-shield"></i></a>
+        </div>
+    </nav>
+
+    <div class="scan-container">
+        <div class="scan-card">
+            <div class="card-header text-center">
+                <h2>Scan QR Code</h2>
+                <p>Masukkan Email dan Password Anda, lalu arahkan kamera ke QR Code</p>
+            </div>
+            
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="student-name">Nama Siswa</label>
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="student-name" required placeholder="Masukkan nama lengkap Anda sesuai data">
+                    </div>
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label for="student-password">Password</label>
+                    <div class="input-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="student-password" required placeholder="Masukkan password Anda">
+                    </div>
+                </div>
+
+                <div class="scanner-box mt-3">
+                    <div id="reader"></div>
+                </div>
+                
+                <div id="scan-result" class="hidden alert mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/scan.js') }}"></script>
+{% endblock %}
