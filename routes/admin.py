@@ -60,7 +60,10 @@ def api_generate_qr():
     
     # Convert image to base64 string
     buffered = io.BytesIO()
-    img.save(buffered, format="PNG")
+    try:
+        img.save(buffered, format="PNG")
+    except TypeError:
+        img.save(buffered)
     img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
     
     return jsonify({
