@@ -41,3 +41,112 @@
     </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Auto-Redirect if already logged in
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    const userRole = localStorage.getItem('user_role');
+    
+    if (isLoggedIn === 'true') {
+        if (userRole === 'user') {
+            window.location.href = "{{ url_for('attendance.scan') }}";
+            return;
+        } else if (userRole === 'admin') {
+            // Since login.html is rendered, the admin session on the server must have expired or logged out.
+            // Clear local storage admin data to prevent infinite redirect loops.
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('user_role');
+            localStorage.removeItem('admin_name');
+            localStorage.removeItem('admin_email');
+        }
+    }
+    
+    // 2. Intercept login form submission
+    const loginForm = document.querySelector('.login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // Show loading state
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            const origBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+            
+            try {
+                const response = await fetch("{{ url_for('auth.login') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.status === 'success') {
+                    // Save to localStorage
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('user_role', data.role);
+                    
+                    if (data.role === 'user') {
+                        localStorage.setItem('student_name', data.name);
+                        localStorage.setItem('student_email', email);
+                        localStorage.setItem('student_password', password); // stored client-side for QR submission
+                    } else if (data.role === 'admin') {
+                        localStorage.setItem('admin_name', data.name);
+                        localStorage.setItem('admin_email', email);
+                    }
+                    
+                    // Show success status briefly
+                    submitBtn.innerHTML = '<i class="fas fa-check"></i> Sukses!';
+                    
+                    // Redirect
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 500);
+                } else {
+                    // Show error flash equivalent
+                    showToast('danger', data.message || 'Login gagal. Periksa email dan password Anda.');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = origBtnText;
+                }
+            } catch (error) {
+                console.error('Error during login:', error);
+                showToast('danger', 'Terjadi kesalahan koneksi ke server.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origBtnText;
+            }
+        });
+    }
+    
+    function showToast(category, message) {
+        // Remove existing toasts first
+        const existingToasts = document.querySelectorAll('.toast');
+        existingToasts.forEach(t => t.remove());
+        
+        const toastContainer = document.querySelector('.toast-container') || document.createElement('div');
+        if (!toastContainer.classList.contains('toast-container')) {
+            toastContainer.className = 'toast-container';
+            document.body.appendChild(toastContainer);
+        }
+        
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${category}`;
+        toast.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}

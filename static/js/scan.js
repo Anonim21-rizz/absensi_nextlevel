@@ -6,6 +6,61 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem('device_uuid', deviceId);
     }
 
+    // --- Persistent Login Setup ---
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const userRole = localStorage.getItem('user_role');
+    
+    // UI Elements
+    const studentNameInput = document.getElementById('student-name');
+    const studentPasswordInput = document.getElementById('student-password');
+    const credentialsFormGroup = document.getElementById('student-credentials-form-group');
+    const profileBadge = document.getElementById('student-profile-badge');
+    const profileName = document.getElementById('profile-student-name');
+    const profileEmail = document.getElementById('profile-student-email');
+    const scanDescription = document.getElementById('scan-description');
+    
+    const navStudentName = document.getElementById('logged-in-student-nav-name');
+    const btnAdminLogin = document.getElementById('btn-admin-login');
+
+    if (isLoggedIn && userRole === 'user') {
+        const studentName = localStorage.getItem('student_name');
+        const studentEmail = localStorage.getItem('student_email');
+        const studentPassword = localStorage.getItem('student_password');
+
+        // Populate elements if they exist
+        if (studentNameInput) studentNameInput.value = studentName || '';
+        if (studentPasswordInput) studentPasswordInput.value = studentPassword || '';
+        
+        // Hide standard inputs & show profile badge
+        if (credentialsFormGroup) credentialsFormGroup.style.display = 'none';
+        if (profileBadge) {
+            profileBadge.style.display = 'flex';
+            if (profileName) profileName.textContent = studentName || '';
+            if (profileEmail) profileEmail.textContent = studentEmail || '';
+        }
+        
+        // Update header description
+        if (scanDescription) {
+            scanDescription.textContent = 'Arahkan kamera ke QR Code untuk melakukan absensi.';
+        }
+
+        // Show student name in navbar, hide admin login
+        if (navStudentName) {
+            navStudentName.textContent = `Halo, ${studentName}`;
+            navStudentName.style.display = 'inline';
+        }
+        if (btnAdminLogin) {
+            btnAdminLogin.style.display = 'none';
+        }
+    } else {
+        // Fallback or double check: if user role is admin or not logged in at all, redirect to login
+        if (window.location.pathname.includes('/attendance/scan')) {
+            window.location.href = '/login';
+            return;
+        }
+    }
+
+    // --- Scanner Setup & Logic ---
     const html5QrcodeScanner = new Html5QrcodeScanner(
         "reader", 
         { 
@@ -21,8 +76,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function onScanSuccess(decodedText, decodedResult) {
         if (isProcessing) return;
         
-        const nameInput = document.getElementById('student-name').value;
-        const passwordInput = document.getElementById('student-password').value;
+        let nameInput = '';
+        let passwordInput = '';
+
+        if (isLoggedIn && userRole === 'user') {
+            nameInput = localStorage.getItem('student_name');
+            passwordInput = localStorage.getItem('student_password');
+        } else {
+            nameInput = studentNameInput ? studentNameInput.value : '';
+            passwordInput = studentPasswordInput ? studentPasswordInput.value : '';
+        }
+        
         const resultDiv = document.getElementById('scan-result');
 
         if (!nameInput || !passwordInput) {
@@ -60,8 +124,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 resultDiv.className = 'alert mt-3 alert-success';
                 resultDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
                 
-                // Clear password field for security
-                document.getElementById('student-password').value = '';
+                // Clear password field if inputs are shown
+                if (studentPasswordInput) {
+                    studentPasswordInput.value = '';
+                }
                 
                 setTimeout(() => {
                     // Refresh scanner state instead of full page reload to make it faster for the next student
@@ -73,9 +139,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 isProcessing = false;
                 document.getElementById('reader').style.opacity = '1';
                 
-                // If wrong password, clear it
-                if (data.message.includes('Password')) {
-                    document.getElementById('student-password').value = '';
+                // If wrong password and inputs are shown, clear it
+                if (data.message.includes('Password') && studentPasswordInput) {
+                    studentPasswordInput.value = '';
                 }
             }
         })

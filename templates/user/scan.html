@@ -3,6 +3,12 @@
 {% block title %}Scan QR - Absensi Siswa{% endblock %}
 
 {% block head %}
+<!-- Fast client-side auth check before rendering content -->
+<script>
+    if (localStorage.getItem('isLoggedIn') !== 'true') {
+        window.location.href = "{{ url_for('auth.login') }}";
+    }
+</script>
 <!-- Include html5-qrcode library -->
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 {% endblock %}
@@ -15,7 +21,8 @@
             <span>Sistem Absensi</span>
         </div>
         <div class="user-info">
-            <a href="{{ url_for('auth.login') }}" class="btn-logout" title="Admin Login"><i class="fas fa-user-shield"></i></a>
+            <span id="logged-in-student-nav-name" style="display: none; font-weight: 500; font-size: 0.9rem; margin-right: 0.5rem; color: white;"></span>
+            <a href="{{ url_for('auth.login') }}" id="btn-admin-login" class="btn-logout" title="Admin Login"><i class="fas fa-user-shield"></i></a>
         </div>
     </nav>
 
@@ -23,23 +30,39 @@
         <div class="scan-card">
             <div class="card-header text-center">
                 <h2>Scan QR Code</h2>
-                <p>Masukkan Email dan Password Anda, lalu arahkan kamera ke QR Code</p>
+                <p id="scan-description">Masukkan Nama dan Password Anda, lalu arahkan kamera ke QR Code</p>
             </div>
             
             <div class="card-body">
-                <div class="form-group">
-                    <label for="student-name">Nama Siswa</label>
-                    <div class="input-icon">
-                        <i class="fas fa-user"></i>
-                        <input type="text" id="student-name" required placeholder="Masukkan nama lengkap Anda sesuai data">
+                <!-- Logged in Student Profile Card -->
+                <div id="student-profile-badge" style="display: none; align-items: center; justify-content: space-between; border-left: 4px solid var(--primary-light); background: rgba(59, 130, 246, 0.05); padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div class="avatar" style="width: 45px; height: 45px; font-size: 1.25rem; background: var(--primary); color: white;">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600; color: var(--text-dark);" id="profile-student-name"></h4>
+                            <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);" id="profile-student-email"></p>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="form-group mb-4">
-                    <label for="student-password">Password</label>
-                    <div class="input-icon">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="student-password" required placeholder="Masukkan password Anda">
+
+                <!-- Fallback credentials form for non-persistent access (if any) -->
+                <div id="student-credentials-form-group">
+                    <div class="form-group">
+                        <label for="student-name">Nama Siswa</label>
+                        <div class="input-icon">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="student-name" placeholder="Masukkan nama lengkap Anda sesuai data">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mb-4">
+                        <label for="student-password">Password</label>
+                        <div class="input-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="student-password" placeholder="Masukkan password Anda">
+                        </div>
                     </div>
                 </div>
 

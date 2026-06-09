@@ -13,6 +13,7 @@
         <nav class="sidebar-nav">
             <a href="#" class="active"><i class="fas fa-chart-line"></i> Dashboard</a>
             <a href="{{ url_for('admin.users') }}"><i class="fas fa-users"></i> Data Siswa</a>
+            <a href="{{ url_for('admin.rekap') }}"><i class="fas fa-calendar-alt"></i> Rekap Absensi</a>
             <a href="{{ url_for('admin.export_excel') }}"><i class="fas fa-file-excel"></i> Export Laporan</a>
             <a href="{{ url_for('auth.logout') }}" class="logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </nav>

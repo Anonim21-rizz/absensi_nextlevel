@@ -9,9 +9,9 @@ from routes.auth import bcrypt
 import qrcode
 import io
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta, date
 import openpyxl
-
+import calendar
 HARI_INDO = {
     0: 'Senin',
     1: 'Selasa',
@@ -89,11 +89,50 @@ def recent_scans():
         
     return jsonify(data)
 
+def get_filtered_attendances(filter_type):
+    now = get_wib_now()
+    today = now.date()
+    query = Attendance.query
+    
+    if filter_type == 'hari':
+        query = query.filter(Attendance.tanggal == today)
+    elif filter_type == 'minggu':
+        start_date = today - timedelta(days=6) # 7 days include today
+        query = query.filter(Attendance.tanggal >= start_date, Attendance.tanggal <= today)
+    elif filter_type == 'bulan':
+        _, last_day = calendar.monthrange(today.year, today.month)
+        start_date = date(today.year, today.month, 1)
+        end_date = date(today.year, today.month, last_day)
+        query = query.filter(Attendance.tanggal >= start_date, Attendance.tanggal <= end_date)
+    elif filter_type == 'semester':
+        if today.month <= 6:
+            start_date = date(today.year, 1, 1)
+            end_date = date(today.year, 6, 30)
+        else:
+            start_date = date(today.year, 7, 1)
+            end_date = date(today.year, 12, 31)
+        query = query.filter(Attendance.tanggal >= start_date, Attendance.tanggal <= end_date)
+        
+    return query.order_by(Attendance.tanggal.desc(), Attendance.jam_absen.desc()).all()
+
+
+@admin_bp.route('/rekap')
+@login_required
+@admin_required
+def rekap():
+    filter_type = request.args.get('filter', 'hari')
+    if filter_type not in ['hari', 'minggu', 'bulan', 'semester', 'semua']:
+        filter_type = 'hari'
+        
+    attendances = get_filtered_attendances(filter_type)
+    return render_template('admin/rekap.html', attendances=attendances, active_filter=filter_type, HARI_INDO=HARI_INDO)
+
 @admin_bp.route('/export')
 @login_required
 @admin_required
 def export_excel():
-    attendances = Attendance.query.all()
+    filter_type = request.args.get('filter', 'semua')
+    attendances = get_filtered_attendances(filter_type)
     
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -120,7 +159,7 @@ def export_excel():
     return send_file(
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        download_name=f"rekap_absensi_{get_wib_now().strftime('%Y%m%d')}.xlsx",
+        download_name=f"rekap_absensi_{filter_type}_{get_wib_now().strftime('%Y%m%d')}.xlsx",
         as_attachment=True
     )
 
@@ -237,11 +276,11 @@ def export_users_excel():
     ws = wb.active
     ws.title = "Data Siswa"
     
-    headers = ['ID', 'Nama Siswa', 'Email', 'Role']
+    headers = ['No', 'Nama Siswa', 'Email', 'Role']
     ws.append(headers)
     
-    for u in users_list:
-        ws.append([u.id, u.name, u.email, u.role])
+    for idx, u in enumerate(users_list, start=1):
+        ws.append([idx, u.name, u.email, u.role])
         
     output = io.BytesIO()
     wb.save(output)
